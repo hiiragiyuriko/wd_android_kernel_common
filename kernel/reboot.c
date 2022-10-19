@@ -386,8 +386,13 @@ void ctrl_alt_del(void)
 		kill_cad_pid(SIGINT, 1);
 }
 
+#if defined(CONFIG_RTK_XEN_SUPPORT) && defined(CONFIG_ANDROID)
+char poweroff_cmd[POWEROFF_CMD_PATH_LEN] = "/system/bin/reboot -p";
+static const char reboot_cmd[] = "/system/bin/reboot";
+#else
 char poweroff_cmd[POWEROFF_CMD_PATH_LEN] = "/sbin/poweroff";
 static const char reboot_cmd[] = "/sbin/reboot";
+#endif
 
 static int run_cmd(const char *cmd)
 {
