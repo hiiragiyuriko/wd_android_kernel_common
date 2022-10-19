@@ -682,6 +682,43 @@ static int __init __fdt_scan_reserved_mem(unsigned long node, const char *uname,
 	return 0;
 }
 
+#ifdef CONFIG_RTK_TRACER
+static int __init __fdt_reserve_rtk_trace_memory(unsigned long node, const char *uname, int depth, void *data)
+{
+	const __be32 *reg, *endp;
+	int l;
+	u64 base, size;
+	const char *status;
+
+	if (strncmp(uname, "rtktrace", 8) != 0)
+		return 0;
+
+	status = of_get_flat_dt_prop(node, "status", NULL);
+	if (status && strcmp(status, "okay") != 0 && strcmp(status, "ok") != 0)
+		return 0;
+
+	reg = of_get_flat_dt_prop(node, "reg", &l);
+
+	if (reg == NULL)
+		return 0;
+
+	endp = reg + (l / sizeof(__be32));
+
+	while ((endp - reg) >= (dt_root_addr_cells + dt_root_size_cells)) {
+
+		base = dt_mem_next_cell(dt_root_addr_cells, &reg);
+		size = dt_mem_next_cell(dt_root_size_cells, &reg);
+
+		if (size != 0 && memblock_is_memory(base)) {
+			pr_info("%s, reserveing base:0x%lx size:0x%lx\n", __func__, (unsigned long)base, (unsigned long)size);
+			memblock_reserve(base, size);
+		}
+	}
+
+	return 0;
+}
+#endif /* CONFIG_RTK_TRACER */
+
 /**
  * early_init_fdt_scan_reserved_mem() - create reserved memory regions
  *
@@ -706,6 +743,9 @@ void __init early_init_fdt_scan_reserved_mem(void)
 	}
 
 	of_scan_flat_dt(__fdt_scan_reserved_mem, NULL);
+#ifdef CONFIG_RTK_TRACER
+	of_scan_flat_dt(__fdt_reserve_rtk_trace_memory, NULL);
+#endif
 	fdt_init_reserved_mem();
 }
 
@@ -927,6 +967,76 @@ static inline void early_init_dt_check_for_initrd(unsigned long node)
 {
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
+
+#if defined(CONFIG_CMA_AREAS)
+#if defined(CONFIG_RTD119X) || defined(CONFIG_RTD129x) || defined(CONFIG_RTD139x)
+extern of_cma_info_t of_cma_info;
+static inline void early_init_dt_check_for_cma(unsigned long node)
+{
+	int i, len;
+	const __be32 *prop;
+
+	pr_debug("Looking for cma properties... ");
+
+	// init data
+	memset(&of_cma_info, 0, sizeof(of_cma_info_t)) ;
+	of_cma_info.region_enable = 0;
+	of_cma_info.region_cnt = 0;
+	logo_start_addr_bak = logo_start_addr = 0;
+	logo_size_bak = logo_size = 0;
+
+	prop = of_get_flat_dt_prop(node, "logo-area", &len);
+	if (prop) {
+		logo_start_addr_bak =
+			logo_start_addr = of_read_number(prop, 1);
+		logo_size_bak =
+			logo_size = of_read_number(prop+1, 1);
+	}
+	printk(KERN_ERR "\033[1;33m" "DT: logo_start_addr 0x%llx, size 0x%llx" "\033[m\n",
+		logo_start_addr, logo_size);
+
+	prop = of_get_flat_dt_prop(node, "cma-region-enable", &len);
+	if (prop) {
+		of_cma_info.region_enable = of_read_number(prop, 1);
+	}
+	pr_debug("of_cma_info.region_enable %d\n", of_cma_info.region_enable);
+	printk(KERN_ERR "\033[1;33m" "DT: of_cma_info.region_enable %d" "\033[m\n",
+		of_cma_info.region_enable);
+
+	prop = of_get_flat_dt_prop(node, "cma-region-info", &len);
+	if (prop) {
+		int array_size;
+		array_size = len / (sizeof(u32)*CMA_REGION_COLUMN);
+		of_cma_info.region_cnt = array_size =
+			min(array_size,MAX_CMA_AREAS);
+		for (i=0; i<array_size; i++) {
+			of_cma_info.region[i].flag =
+				of_read_number(prop+0+(i*CMA_REGION_COLUMN), 1);
+			of_cma_info.region[i].size =
+				of_read_number(prop+1+(i*CMA_REGION_COLUMN), 1);
+			of_cma_info.region[i].base =
+				of_read_number(prop+2+(i*CMA_REGION_COLUMN), 1);
+
+			pr_debug("region_cnt.region[%d]{0x%x,0x%llx,0x%llx}\n",
+				i,
+				of_cma_info.region[i].flag,
+				of_cma_info.region[i].size,
+				of_cma_info.region[i].base);
+		}
+	}
+}
+#else
+static inline void early_init_dt_check_for_cma(unsigned long node)
+{
+	pr_debug("#CONFIG_CMA_AREA is not set\n");
+}
+#endif // defined(CONFIG_RTD129x) || defined(CONFIG_RTD139x)
+#else
+static inline void early_init_dt_check_for_cma(unsigned long node)
+{
+	pr_debug("#CONFIG_CMA_AREA is not set\n");
+}
+#endif // defined(CONFIG_CMA_AREAS)
 
 #ifdef CONFIG_SERIAL_EARLYCON
 
