@@ -19,6 +19,8 @@
 #include <linux/of.h>
 #include <linux/of_fdt.h>
 #include <linux/of_reserved_mem.h>
+#include <linux/swiotlb.h>
+#include <linux/cma.h>
 #include <linux/sizes.h>
 #include <linux/string.h>
 #include <linux/errno.h>
@@ -27,10 +29,17 @@
 #include <linux/debugfs.h>
 #include <linux/serial_core.h>
 #include <linux/sysfs.h>
+#include <linux/ctype.h>
 
 #include <asm/setup.h>  /* for COMMAND_LINE_SIZE */
 #include <asm/page.h>
 
+int saving_section_page_table_xen_low;
+int saving_section_page_table;
+unsigned long logo_start_addr;
+unsigned long logo_size;
+unsigned long logo_start_addr_bak;
+unsigned long logo_size_bak;
 /*
  * of_fdt_limit_memory - limit the number of regions in the /memory node
  * @limit: maximum entries
@@ -968,6 +977,36 @@ static inline void early_init_dt_check_for_initrd(unsigned long node)
 }
 #endif /* CONFIG_BLK_DEV_INITRD */
 
+extern void  swiotlb_init_variable(unsigned long of_io_tlb_nslabs,
+	enum swiotlb_force of_swiotlb_force);
+static inline void early_init_dt_check_for_swiotlb(unsigned long node)
+{
+	int len;
+	const __be32 *prop;
+	unsigned long of_io_tlb_nslabs;
+	enum swiotlb_force of_swiotlb_force;
+
+	pr_debug("Looking for swiotlb properties... ");
+
+	of_io_tlb_nslabs = 0;
+	of_swiotlb_force = 0;
+
+	prop = of_get_flat_dt_prop(node, "swiotlb-memory-reservation-size", &len);
+	if (!prop)
+		return;
+	of_io_tlb_nslabs = of_read_number(prop, len/4);
+
+	prop = of_get_flat_dt_prop(node, "swiotlb-force", &len);
+	if (prop) {
+		of_swiotlb_force = of_read_number(prop, len/4);
+	}
+
+	pr_debug("of_io_tlb_nslabs=0x%llx, of_swiotlb_force=%d\n",
+		 (unsigned long long)of_io_tlb_nslabs, of_swiotlb_force);
+
+	swiotlb_init_variable(of_io_tlb_nslabs, of_swiotlb_force);
+}
+
 #if defined(CONFIG_CMA_AREAS)
 #if defined(CONFIG_RTD119X) || defined(CONFIG_RTD129x) || defined(CONFIG_RTD139x)
 extern of_cma_info_t of_cma_info;
@@ -1126,6 +1165,38 @@ u64 __init dt_mem_next_cell(int s, const __be32 **cellp)
 }
 
 /**
+ * sspt: saving-section-page-table for low-memory dom0
+ */
+static int __init
+setup_sspt(char *str)
+{
+	if (isdigit(*str)) {
+		saving_section_page_table_xen_low = simple_strtoul(str, &str, 0);
+		printk(KERN_ERR "\033[1;33m" "DT: saving_section_page_table_xen_low %d" "\033[m\n",
+			saving_section_page_table_xen_low);
+	}
+
+	return 0;
+}
+early_param("sspt", setup_sspt);
+
+/**
+ * sspt2: saving-section-page-table for low-memory domU
+ */
+static int __init
+setup_sspt2(char *str)
+{
+	if (isdigit(*str)) {
+		saving_section_page_table = simple_strtoul(str, &str, 0);
+		printk(KERN_ERR "\033[1;33m" "DT: saving_section_page_table %d(bootargs)" "\033[m\n",
+			saving_section_page_table);
+	}
+
+	return 0;
+}
+early_param("sspt2", setup_sspt2);
+
+/**
  * early_init_dt_scan_memory - Look for an parse memory nodes
  */
 int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
@@ -1145,6 +1216,13 @@ int __init early_init_dt_scan_memory(unsigned long node, const char *uname,
 			return 0;
 	} else if (strcmp(type, "memory") != 0)
 		return 0;
+
+	reg = of_get_flat_dt_prop(node, "saving-section-page-table", &l);
+	if (reg) {
+		saving_section_page_table = of_read_number(reg, 1);
+	}
+	printk(KERN_ERR "\033[1;33m" "DT: saving_section_page_table %d" "\033[m\n",
+		saving_section_page_table);
 
 	reg = of_get_flat_dt_prop(node, "linux,usable-memory", &l);
 	if (reg == NULL)
@@ -1210,6 +1288,10 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 		return 0;
 
 	early_init_dt_check_for_initrd(node);
+
+	early_init_dt_check_for_swiotlb(node);
+
+	early_init_dt_check_for_cma(node);
 
 	/* Put CONFIG_CMDLINE in if forced or if data had nothing in it to start */
 	if (overwrite_incoming_cmdline || !cmdline[0])
@@ -1358,6 +1440,9 @@ void __init early_init_dt_scan_nodes(void)
 bool __init early_init_dt_scan(void *params)
 {
 	bool status;
+
+	saving_section_page_table_xen_low = 0;
+	saving_section_page_table = 0;
 
 	status = early_init_dt_verify(params);
 	if (!status)
