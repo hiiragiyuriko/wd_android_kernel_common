@@ -24,7 +24,10 @@
 #include <linux/sort.h>
 #include <linux/stop_machine.h>
 #include <linux/types.h>
+<<<<<<< HEAD
 #include <linux/mm.h>
+=======
+>>>>>>> fa4ad0193d1d6198d5f600705c0baf07810d7d26
 
 #include <asm/cpu.h>
 #include <asm/cpufeature.h>
