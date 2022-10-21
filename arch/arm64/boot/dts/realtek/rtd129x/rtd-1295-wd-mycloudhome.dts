@@ -10,7 +10,7 @@
 /* 0x10000000 ~ 0x10013fff */
 /memreserve/ ACPU_IDMEM_PHYS ACPU_IDMEM_SIZE;
 /* INITRAMFS HAD BEEN MODIFIED */
-/memreserve/	0x000000001D400000 0x0000000000F96873;
+/memreserve/	0x000000001D400000 0x00000000007F3E0F;
 
 #include "rtd-1295.dtsi"
 #include "rtd-1295-giraffe-common.dtsi"
@@ -18,8 +18,8 @@
 / {
 	chosen {
 		linux,initrd-start = <0x1D400000>;
-		linux,initrd-end = <0x1E396873>;
-		bootargs ="earlycon=uart8250,mmio32,0x98007800 console=ttyS0,115200 init=/init androidboot.hardware=kylin androidboot.storage=sata loglevel=4 ramdisk_size=16000 root=/dev/ram0";
+		linux,initrd-end = <0x1DBF3E0F>;
+		bootargs ="earlycon=uart8250,mmio32,0x98007800 console=ttyS0,115200 init=/init";
 	};
 
 	/*
