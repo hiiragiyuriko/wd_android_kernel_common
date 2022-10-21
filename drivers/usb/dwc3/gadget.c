@@ -2910,7 +2910,6 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 	}
 
 	evt->count = 0;
-	evt->flags &= ~DWC3_EVENT_PENDING;
 	ret = IRQ_HANDLED;
 
 	/* Unmask interrupt */
@@ -2922,6 +2921,10 @@ static irqreturn_t dwc3_process_event_buf(struct dwc3_event_buffer *evt)
 	if (dwc->revision >= DWC3_REVISION_300A)
 		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), DWC3_EVNT_HANDLER_BUSY);
 #endif
+
+	/* Keep the clearing of DWC3_EVENT_PENDING at the end */
+	evt->flags &= ~DWC3_EVENT_PENDING;
+
 	return ret;
 }
 
