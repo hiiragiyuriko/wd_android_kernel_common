@@ -25,7 +25,7 @@
 #define MMC_OPS_TIMEOUT_MS	(10 * 60 * 1000) /* 10 minute timeout */
 #ifdef CONFIG_MMC_RTK_SDMMC
 #define MMC_MIN_OPS_TIMEOUT_MS (100)            /* minimum 100 ms timeout */
-#endif CONFIG_MMC_RTK_SDMMC
+#endif /* CONFIG_MMC_RTK_SDMMC */
 
 static const u8 tuning_blk_pattern_4bit[] = {
 	0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
@@ -533,12 +533,17 @@ int __mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 		ignore_crc = false;
 
 	/* We have an unspecified cmd timeout, use the fallback value. */
-	if (!timeout_ms)
-		timeout_ms = MMC_OPS_TIMEOUT_MS;
+	if (!timeout_ms){
+        pr_warn("%s: unspecified timeout for CMD6 - use generic\n",
+			mmc_hostname(host));
+		timeout_ms = card->ext_csd.generic_cmd6_time;
 #ifdef CONFIG_MMC_RTK_EMMC
         if (timeout_ms < MMC_MIN_OPS_TIMEOUT_MS)
+            pr_warn("%s: unspecified timeout for CMD6 - use generic\n",
+			    mmc_hostname(host));
                 timeout_ms = MMC_MIN_OPS_TIMEOUT_MS;
 #endif
+    }
 
 	/* Must check status to be sure of no errors. */
 	timeout = jiffies + msecs_to_jiffies(timeout_ms) + 1;
