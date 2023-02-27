@@ -1,0 +1,81 @@
+/ {
+	compatible = "realtek,rtd1295";
+	interrupt-parent = <&gic>;
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+    aliases {
+		serial0 = &uart0;
+	};
+    
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		A53_0: cpu@0 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x0>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x9801AA44>;
+			next-level-cache = <&a53_l2>;
+		};
+
+		A53_1: cpu@1 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x1>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x9801AA44>;
+			next-level-cache = <&a53_l2>;
+		};
+
+		A53_2: cpu@2 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x02>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x9801AA44>;
+			next-level-cache = <&a53_l2>;
+		};
+
+		A53_3: cpu@3 {
+			device_type = "cpu";
+			compatible = "arm,cortex-a53", "arm,armv8";
+			reg = <0x03>;
+			enable-method = "spin-table";
+			cpu-release-addr = <0x0 0x9801AA44>;
+			next-level-cache = <&a53_l2>;
+		};
+
+		a53_l2: l2-cache {
+			compatible = "cache";
+		};
+	};
+
+	soc@0 {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		reg = <0x98000000 0x70000>;
+		compatible = "simple-bus";
+		device_type = "soc";
+		ranges;
+	};
+
+	arch_timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <1 13 0xf08>,
+			<1 14 0xf08>,
+			<1 11 0xf08>,
+			<1 10 0xf08>;
+		clock-frequency = <27000000>;
+	};
+
+	gic: interrupt-controller@FF010000 {
+		compatible = "arm,cortex-a15-gic";
+		#interrupt-cells = <3>;
+		interrupt-controller;
+		reg = <0xFF011000 0x1000>,
+			<0xFF012000 0x1000>;
+	};
+};

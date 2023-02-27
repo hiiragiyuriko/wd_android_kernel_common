@@ -1,0 +1,28 @@
+/dts-v1/;
+
+/* SYS_BOOTCODE_MEMBASE ~ SYS_BOOTCODE_MEMSIZE */
+/memreserve/ 0x00000000 0x0002ffff;
+/* RPC_COMM_PHYS ~ RPC_COMM_SIZE */
+/memreserve/ 0x0001f000 0x0001ffff;
+/* RPC_RINGBUF_PHYS ~ RPC_RINGBUF_SIZE */
+/memreserve/ 0x01ffe000 0x02001fff;
+/* ACPU_IDMEM_PHYS ~ ACPU_IDMEM_SIZE */
+/memreserve/ 0x10000000 0x10013fff;
+
+#include "rtd-1295.dtsi"
+
+/ {
+	compatible = "realtek,rtd1295";
+	model = "Monarch";
+
+    chosen {
+		//linux,initrd-start = <0x1D400000>;
+		//linux,initrd-end = <0x1E396873>;
+		bootargs = "loglevel=7";
+	};
+
+	memory@0 {
+		device_type = "memory";
+		reg = <0 0x40000000>; /* 1024 MB */
+	};
+};
