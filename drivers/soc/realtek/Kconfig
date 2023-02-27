@@ -1,0 +1,17 @@
+#
+# Realtek Soc Drviers
+#
+menu "Realtek Soc Drviers"
+
+config RTD129x
+	bool "Realtek RTD129x SoC family specific drivers"
+	depends on ARCH_REALTEK
+	default y
+	help
+	  Realtek RTD129x SoC family specific support.
+
+	  If unsure, say N.
+
+source "drivers/soc/realtek/common/Kconfig"
+
+endmenu

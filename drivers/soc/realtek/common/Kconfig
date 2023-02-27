@@ -1,0 +1,5 @@
+config RTK_SB2_MEM_TRASH_MONITOR
+	bool "Realtek memory trash monitor"
+	default y
+	---help---
+	  Enable helper functions for memory trash detection. If unsure, say N.
