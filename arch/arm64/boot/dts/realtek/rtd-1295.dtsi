@@ -78,4 +78,15 @@
 		reg = <0xFF011000 0x1000>,
 			<0xFF012000 0x1000>;
 	};
+
+    uart0: serial0@98007800 {
+		compatible = "snps,dw-apb-uart";
+		reg = <0x98007800 0x400>,
+			<0x98007000 0x100>;
+		interrupts-st-mask = <0x4>;
+		interrupts = <1 2>;
+		reg-shift = <2>;
+		reg-io-width = <4>;
+		status = "okay";
+	};
 };
