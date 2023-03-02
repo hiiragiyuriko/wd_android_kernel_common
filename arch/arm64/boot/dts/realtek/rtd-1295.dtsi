@@ -81,6 +81,7 @@
 
     uart0: serial0@98007800 {
 		compatible = "snps,dw-apb-uart";
+        interrupt-parent = <&mux_intc>;
 		reg = <0x98007800 0x400>,
 			<0x98007000 0x100>;
 		interrupts-st-mask = <0x4>;
@@ -90,6 +91,19 @@
 		status = "okay";
 	};
 
+    mux_intc: intc@9801B000 {
+		compatible = "Realtek,rtk-irq-mux";
+		Realtek,mux-nr = <2>;
+		#interrupt-cells = <2>;
+		interrupt-controller;
+		reg = <0x9801B000 0x100>, /* MISC_TOP MISC_ISO */
+			<0x98007000 0x100>;
+		interrupts = <0 40 4>, <0 41 4>;
+		intr-status = <0xc>, <0x0>;
+		intr-en = <0x80>, <0x40>;
+		status = "okay";
+	};
+    
     sb2: sb2@9801a000 {
 		compatible = "realtek,rtd1295-sysbrg2", "syscon", "simple-mfd";
 		reg = <0x9801a000 0x1000>;
