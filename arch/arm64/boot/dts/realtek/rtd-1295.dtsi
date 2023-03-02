@@ -88,6 +88,8 @@
 			<0x98007000 0x100>;
 		interrupts-st-mask = <0x4>;
 		interrupts = <1 2>;
+        pinctrl-names = "default";
+		pinctrl-0 = <&uart0_pins>;
 		reg-shift = <2>;
 		reg-io-width = <4>;
         clock-names = "apb_pclk";
@@ -107,6 +109,34 @@
 		intr-status = <0xc>, <0x0>;
 		intr-en = <0x80>, <0x40>;
 		status = "okay";
+	};
+
+    pinctrl: pinctrl@9801A000 {
+		compatible = "realtek,rtk129x-pinctrl";
+		reg = <0x9801A000 0x97c>,
+			<0x9804d000 0x010>,
+			<0x98012000 0x640>,
+			<0x98007000 0x340>;
+		#gpio-range-cells = <3>;
+		pinctrl-names = "default";
+		pinctrl-0 =
+			<&spi_pins_loc_gpio>;
+		status = "okay";
+        
+        spi_pins_loc_gpio: spi_pins_loc_gpio {
+			realtek,pins = "gpio_0",
+				"gpio_1",
+				"gpio_2",
+				"gpio_3",
+				"sf_en";
+			realtek,function = "gpio";
+		};
+
+        uart0_pins: uart0_pins {
+			realtek,pins = "ur0_rx",
+				"ur0_tx";
+			realtek,function = "uart0";
+		};
 	};
 
     iso: iso@98007000 {
