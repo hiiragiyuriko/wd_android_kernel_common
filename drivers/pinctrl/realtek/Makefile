@@ -1,0 +1,1 @@
+obj-y	+= pinctrl-rtd129x.o

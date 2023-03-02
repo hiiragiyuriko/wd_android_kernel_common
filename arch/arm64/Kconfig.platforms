@@ -124,7 +124,7 @@ config ARCH_REALTEK
 	bool "Realtek Platforms"
     select ARM_GIC
     select CLKSRC_OF
-    select PINCTRK
+    select PINCTRL
     help
         This enables support for the ARMv8 based Realtek chipset.
 
