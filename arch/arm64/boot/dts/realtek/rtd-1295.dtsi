@@ -1,3 +1,5 @@
+#include <dt-bindings/clock/rtd1295-clk.h>
+
 / {
 	compatible = "realtek,rtd1295";
 	interrupt-parent = <&gic>;
@@ -88,6 +90,9 @@
 		interrupts = <1 2>;
 		reg-shift = <2>;
 		reg-io-width = <4>;
+        clock-names = "apb_pclk";
+		clocks = <&ic RTD1295_ISO_CLK_EN_UR0>;
+		clock-frequency = <27000000>; /* This value must be override by the board. */
 		status = "okay";
 	};
 
@@ -103,7 +108,15 @@
 		intr-en = <0x80>, <0x40>;
 		status = "okay";
 	};
-    
+
+    iso: iso@98007000 {
+		reg = <0x98007000 0x1000>;
+		compatible = "syscon", "simple-mfd";
+		ranges = <0x0 0x98007000 0x1000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+
     sb2: sb2@9801a000 {
 		compatible = "realtek,rtd1295-sysbrg2", "syscon", "simple-mfd";
 		reg = <0x9801a000 0x1000>;
@@ -112,6 +125,29 @@
 		#size-cells = <1>;
 	};
 
+};
+
+&iso {
+
+	ic: clock-controller {
+		compatible = "realtek,rtd1295-iso-clk";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	reboot-mode@640 {
+		compatible = "realtek,reboot-mode";
+		reg = <0x640 0x4>;
+		status = "okay";
+	};
+
+	reboot@680 {
+		compatible = "realtek,reboot";
+		reg = <0x680 0x48>;
+		rst-oe = <0>;
+		rst-oe-for-init = <0>;
+		status = "okay";
+	};
 };
 
 &sb2 {
