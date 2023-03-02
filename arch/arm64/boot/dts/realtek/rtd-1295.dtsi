@@ -89,4 +89,74 @@
 		reg-io-width = <4>;
 		status = "okay";
 	};
+
+    sb2: sb2@9801a000 {
+		compatible = "realtek,rtd1295-sysbrg2", "syscon", "simple-mfd";
+		reg = <0x9801a000 0x1000>;
+		ranges = <0x0 0x9801a000 0x1000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+	};
+
+};
+
+&sb2 {
+	sb2_lock0: sb2-lock@0 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x0 0x4>;
+	};
+
+	inv@4 {
+		compatible = "realtek,sysbrg2-inv";
+		reg = <0x4 0x10>;
+		interrupts = <0 36 4>;
+		status = "okay";
+	};
+
+	dbg@458 {
+		compatible = "realtek,sysbrg2-dbg";
+		reg = <0x458 0x8c>;
+		interrupts = <0 36 4>;
+		status = "okay";
+	};
+
+	sb2_lock1: sb2-lock@620 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x620 0x4>;
+	};
+
+	sb2_lock2: sb2-lock@624 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x624 0x4>;
+	};
+
+	sb2_lock3: sb2-lock@628 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x628 0x4>;
+	};
+
+	sb2_lock4: sb2-lock@62c {
+		compatible = "realtek,sb2-sem";
+		reg = <0x62c 0x4>;
+	};
+
+	sb2_lock5: sb2-lock@630 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x630 0x4>;
+	};
+
+	sb2_lock6: sb2-lock@634 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x634 0x4>;
+	};
+
+	sb2_lock7: sb2-lock@638 {
+		compatible = "realtek,sb2-sem";
+		reg = <0x638 0x4>;
+	};
+
+	sb2_lock_avlog: sb2_lock8: sb2-lock@63c {
+		compatible = "realtek,sb2-sem", "realtek,sb2-sem-avlog";
+		reg = <0x63c 0x4>;
+	};
 };
