@@ -63,7 +63,8 @@ struct dw8250_data {
 	struct clk		*pclk;
 	struct reset_control	*rst;
 	struct uart_8250_dma	dma;
-
+	u32			isr_st_mask;
+	void __iomem *		isr_reg;
 	unsigned int		skip_autocfg:1;
 	unsigned int		uart_16550_compatible:1;
 };
@@ -202,12 +203,24 @@ static int dw8250_handle_irq(struct uart_port *p)
 	struct dw8250_data *d = p->private_data;
 	unsigned int iir = p->serial_in(p, UART_IIR);
 
-	if (serial8250_handle_irq(p, iir))
+	if (serial8250_handle_irq(p, iir)) {
+		if (d->isr_reg) {
+			writel(d->isr_st_mask, d->isr_reg);
+			wmb();
+		}
 		return 1;
+	}
 
 	if ((iir & UART_IIR_BUSY) == UART_IIR_BUSY) {
 		/* Clear the USR */
 		(void)p->serial_in(p, d->usr_reg);
+		/* Write the LCR again. */
+		/*p->serial_out(p, UART_LCR, d->last_lcr);*/
+
+		if (d->isr_reg) {
+			writel(d->isr_st_mask, d->isr_reg);
+			wmb();
+		}
 
 		return 1;
 	}
@@ -363,6 +376,8 @@ static int dw8250_probe(struct platform_device *pdev)
 {
 	struct uart_8250_port uart = {};
 	struct resource *regs = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	struct resource *isr_regs = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+	struct device_node *node = pdev->dev.of_node;
 	int irq = platform_get_irq(pdev, 0);
 	struct uart_port *p = &uart.port;
 	struct device *dev = &pdev->dev;
@@ -458,7 +473,10 @@ static int dw8250_probe(struct platform_device *pdev)
 			dev_warn(dev, "could not enable optional baudclk: %d\n",
 				 err);
 		else
-			p->uartclk = clk_get_rate(data->clk);
+			if (!p->uartclk)
+			{
+				p->uartclk = clk_get_rate(data->clk);
+			}
 	}
 
 	/* If no clock rate is defined, fail. */
@@ -488,6 +506,11 @@ static int dw8250_probe(struct platform_device *pdev)
 	}
 	if (!IS_ERR(data->rst))
 		reset_control_deassert(data->rst);
+
+       if (!of_property_read_u32_index(node, "interrupts-st-mask", 0, &data->isr_st_mask))
+               data->isr_reg = devm_ioremap(&pdev->dev, isr_regs->start, resource_size(isr_regs));
+       else
+               data->isr_reg = 0;
 
 	dw8250_quirks(p, data);
 
@@ -560,6 +583,9 @@ static int dw8250_remove(struct platform_device *pdev)
 static int dw8250_suspend(struct device *dev)
 {
 	struct dw8250_data *data = dev_get_drvdata(dev);
+
+	if (!IS_ERR(data->rst))
+		reset_control_deassert(data->rst);
 
 	serial8250_suspend_port(data->line);
 
