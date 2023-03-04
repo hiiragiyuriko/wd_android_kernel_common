@@ -490,4 +490,13 @@ config PHY_NS2_PCIE
 	help
 	  Enable this to support the Broadcom Northstar2 PCIe PHY.
 	  If unsure, say N.
+
+config PHY_RTK_SATA
+	tristate "Realtek SATA PHY driver"
+	depends on OF && RTK_PLATFORM
+    default y
+	select GENERIC_PHY
+	help
+	  Support for SATA GEN3 PHY on realtek chipsets.
+
 endmenu
