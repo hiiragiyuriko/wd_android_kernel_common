@@ -196,6 +196,8 @@ config AHCI_QORIQ
 
 config AHCI_RTK
 	tristate "Realtek AHCI SATA support"
+    depends on RTK_PLATFORM
+    default y
 	help
 	  This option enables support for Realtek AHCI Serial ATA
 	  controllers.
