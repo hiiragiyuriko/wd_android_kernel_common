@@ -866,6 +866,13 @@ struct ata_port {
 
 	struct mutex		scsi_scan_mutex;
 	struct delayed_work	hotplug_task;
+
+#ifdef CONFIG_AHCI_RTK
+	unsigned int hotplug_flag;
+	unsigned int lpm_state;
+	struct delayed_work	lpm_ctl_task;
+#endif
+
 	struct work_struct	scsi_rescan_task;
 
 	unsigned int		hsm_task_state;

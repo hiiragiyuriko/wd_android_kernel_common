@@ -51,6 +51,9 @@
 #include <linux/suspend.h>
 #include <asm/unaligned.h>
 
+#ifdef CONFIG_AHCI_RTK
+#include <linux/workqueue.h>
+#endif
 #include "libata.h"
 #include "libata-transport.h"
 
@@ -111,6 +114,52 @@ static const char *ata_lpm_policy_names[] = {
 	[ATA_LPM_MIN_POWER]	= "min_power",
 };
 
+#ifdef CONFIG_AHCI_RTK
+int ata_scsi_lpm_ctl(struct ata_port *ap, const char *buf)
+{
+	struct ata_link *link;
+	struct ata_device *dev;
+	enum ata_lpm_policy policy;
+	unsigned long flags;
+	int count = 0;
+
+	/* UNKNOWN is internal state, iterate from MAX_POWER */
+	for (policy = ATA_LPM_MAX_POWER;
+	     policy < ARRAY_SIZE(ata_lpm_policy_names); policy++) {
+		const char *name = ata_lpm_policy_names[policy];
+
+		if (strncmp(name, buf, strlen(name)) == 0)
+			break;
+	}
+	if (policy == ARRAY_SIZE(ata_lpm_policy_names))
+		return -EINVAL;
+
+	spin_lock_irqsave(ap->lock, flags);
+
+	ata_for_each_link(link, ap, EDGE) {
+		ata_for_each_dev(dev, &ap->link, ENABLED) {
+			if (dev->horkage & ATA_HORKAGE_NOLPM) {
+				count = -EOPNOTSUPP;
+				goto out_unlock;
+			}
+		}
+	}
+
+	ap->target_lpm_policy = policy;
+	ata_port_schedule_eh(ap);
+out_unlock:
+	spin_unlock_irqrestore(ap->lock, flags);
+	return count;
+}
+
+void ata_lpm_ctl(struct work_struct *work)
+{
+	struct ata_port *ap =
+		container_of(work, struct ata_port, lpm_ctl_task.work);
+	ata_scsi_lpm_ctl(ap, "max_performance");
+}
+#endif
+
 static ssize_t ata_scsi_lpm_store(struct device *device,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
@@ -143,6 +192,16 @@ static ssize_t ata_scsi_lpm_store(struct device *device,
 			}
 		}
 	}
+
+#ifdef CONFIG_AHCI_RTK
+	if(policy==3) {
+		pr_info("[SATA] Enter min power mode\n");
+		ap->lpm_state = 1;
+	} else if(policy==0 || policy==1) {
+		pr_info("[SATA] Enter max performance mode\n");
+		ap->lpm_state = 0;
+	}
+#endif
 
 	ap->target_lpm_policy = policy;
 	ata_port_schedule_eh(ap);
@@ -4277,6 +4336,14 @@ int ata_scsi_queuecmd(struct Scsi_Host *shost, struct scsi_cmnd *cmd)
 	unsigned long irq_flags;
 
 	ap = ata_shost_to_port(shost);
+
+#ifdef CONFIG_AHCI_RTK
+	if(ap->lpm_state == 1) {
+		pr_err("[SATA] enter max performance mode\n");
+		ap->lpm_state = 0;
+		ata_scsi_lpm_ctl(ap, "max_performance");
+	}
+#endif
 
 	spin_lock_irqsave(ap->lock, irq_flags);
 

@@ -1531,6 +1531,10 @@ static int ahci_hardreset(struct ata_link *link, unsigned int *class,
 	struct ata_taskfile tf;
 	bool online;
 	int rc;
+#ifdef CONFIG_AHCI_RTK
+	void __iomem *port_mmio = ahci_port_base(ap);
+	int link_status;
+#endif
 
 	DPRINTK("ENTER\n");
 
@@ -1543,6 +1547,14 @@ static int ahci_hardreset(struct ata_link *link, unsigned int *class,
 
 	rc = sata_link_hardreset(link, timing, deadline, &online,
 				 ahci_check_ready);
+#ifdef CONFIG_AHCI_RTK
+	link_status = readl(port_mmio + PORT_SCR_STAT);
+	if((link_status & 0x3)!=0x3) {
+		rc = sata_link_hardreset(link, timing, deadline, &online, ahci_check_ready);
+		link_status = readl(port_mmio + PORT_SCR_STAT);
+		pr_err("[SATA] %s result1 = %d 0x%x\n", __func__, rc, link_status);
+	}
+#endif
 
 	hpriv->start_engine(ap);
 

@@ -78,10 +78,16 @@
 #include "libata.h"
 #include "libata-transport.h"
 
+#ifdef CONFIG_AHCI_RTK
+#include "ahci.h"
+extern void rtk_sata_phy_poweron(struct ata_link *link);
+#define LINK_RETRY 10
+#endif
+
 /* debounce timing parameters in msecs { interval, duration, timeout } */
-const unsigned long sata_deb_timing_normal[]		= {   5,  100, 2000 };
-const unsigned long sata_deb_timing_hotplug[]		= {  25,  500, 2000 };
-const unsigned long sata_deb_timing_long[]		= { 100, 2000, 5000 };
+const unsigned long sata_deb_timing_normal[]		= {   5,  100, 3000 };
+const unsigned long sata_deb_timing_hotplug[]		= {  25,  500, 3000 };
+const unsigned long sata_deb_timing_long[]		= { 100, 2000, 6000 };
 
 const struct ata_port_operations ata_base_port_ops = {
 	.prereset		= ata_std_prereset,
@@ -2902,6 +2908,50 @@ int ata_bus_probe(struct ata_port *ap)
 	goto retry;
 }
 
+#ifdef CONFIG_AHCI_RTK
+static void sata_print_register(struct ata_link *link)
+{
+	struct ata_port *ap = link->ap;
+	void __iomem *port_mmio = ahci_port_base(ap);
+	u32 status;
+
+	pr_err("start dump register from port %d\n", ap->port_no);
+	status = readl(port_mmio + PORT_IRQ_STAT);
+	pr_err("0x%x = 0x%x\n", PORT_IRQ_STAT, status);
+
+	status = readl(port_mmio + PORT_IRQ_MASK);
+	pr_err("0x%x = 0x%x\n", PORT_IRQ_MASK, status);
+
+	status = readl(port_mmio + PORT_CMD);
+	pr_err("0x%x = 0x%x\n", PORT_CMD, status);
+
+	status = readl(port_mmio + PORT_TFDATA);
+	pr_err("0x%x = 0x%x\n", PORT_TFDATA, status);
+
+	status = readl(port_mmio + PORT_SIG);
+	pr_err("0x%x = 0x%x\n", PORT_SIG, status);
+
+	status = readl(port_mmio + PORT_SCR_STAT);
+	pr_err("0x%x = 0x%x\n", PORT_SCR_STAT, status);
+
+	status = readl(port_mmio + PORT_SCR_CTL);
+	pr_err("0x%x = 0x%x\n", PORT_SCR_CTL, status);
+
+	status = readl(port_mmio + PORT_SCR_ERR);
+	pr_err("0x%x = 0x%x\n", PORT_SCR_ERR, status);
+
+	status = readl(port_mmio + PORT_SCR_ACT);
+	pr_err("0x%x = 0x%x\n", PORT_SCR_ACT, status);
+
+	status = readl(port_mmio + PORT_CMD_ISSUE);
+	pr_err("0x%x = 0x%x\n", PORT_CMD_ISSUE, status);
+
+	status = readl(port_mmio + PORT_SCR_NTF);
+	pr_err("0x%x = 0x%x\n", PORT_SCR_NTF, status);
+	pr_err("dump register finish\n");
+}
+#endif
+
 /**
  *	sata_print_link_status - Print SATA link status
  *	@link: SATA link to printk link status about
@@ -3784,7 +3834,10 @@ int sata_link_resume(struct ata_link *link, const unsigned long *params,
 	int tries = ATA_LINK_RESUME_TRIES;
 	u32 scontrol, serror;
 	int rc;
-
+#if defined(LINK_RETRY) && LINK_RETRY
+	int i;
+	u32 status;
+#endif
 	if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
 		return rc;
 
@@ -3809,7 +3862,9 @@ int sata_link_resume(struct ata_link *link, const unsigned long *params,
 		if ((rc = sata_scr_read(link, SCR_CONTROL, &scontrol)))
 			return rc;
 	} while ((scontrol & 0xf0f) != 0x300 && --tries);
-
+#if defined(CONFIG_AHCI_RTK)
+	rtk_sata_phy_poweron(link);
+#endif
 	if ((scontrol & 0xf0f) != 0x300) {
 		ata_link_warn(link, "failed to resume link (SControl %X)\n",
 			     scontrol);
@@ -3820,8 +3875,35 @@ int sata_link_resume(struct ata_link *link, const unsigned long *params,
 		ata_link_warn(link, "link resume succeeded after %d retries\n",
 			      ATA_LINK_RESUME_TRIES - tries);
 
+#if defined(CONFIG_AHCI_RTK)
+	if ((rc = sata_link_debounce(link, params, deadline))) {
+		sata_print_register(link);
+		return rc;
+	} else
+		sata_print_register(link);
+#else
 	if ((rc = sata_link_debounce(link, params, deadline)))
 		return rc;
+#endif
+#if defined(LINK_RETRY) && LINK_RETRY
+	for( i=0; i< LINK_RETRY; i++) {
+		sata_scr_read(link, SCR_STATUS, &status);
+		status = status & 0xf;
+		if (status == 0 || status == 1) {
+			sata_scr_read(link, SCR_CONTROL, &scontrol);
+			sata_scr_write(link, SCR_CONTROL, (scontrol & ~0x1));
+			sata_scr_write(link, SCR_CONTROL, (scontrol | 0x1));
+			sata_scr_write(link, SCR_CONTROL, (scontrol & ~0x1));
+			ata_msleep(link->ap, 10);
+			sata_link_debounce(link, params, deadline);
+		} else {
+			break;
+		}
+	}
+	
+	if (i > 0)
+		printk(KERN_WARNING "[KML] sata retry count : %d\n",i);
+#endif
 
 	/* clear SError, some PHYs require this even for SRST to work */
 	if (!(rc = sata_scr_read(link, SCR_ERROR, &serror)))
@@ -4486,6 +4568,7 @@ static const struct ata_blacklist_entry ata_device_blacklist [] = {
 
 	/* devices that don't properly handle TRIM commands */
 	{ "SuperSSpeed S238*",		NULL,	ATA_HORKAGE_NOTRIM, },
+	{ "M88V29*",			NULL,	ATA_HORKAGE_NOTRIM, },
 
 	/*
 	 * As defined, the DRAT (Deterministic Read After Trim) and RZAT
@@ -5794,6 +5877,9 @@ void ata_dev_init(struct ata_device *dev)
 	link->sata_spd_limit = link->hw_sata_spd_limit;
 	link->sata_spd = 0;
 
+#if defined(CONFIG_AHCI_RTK)
+	sata_set_spd(link);
+#endif
 	/* High bits of dev->flags are used to record warm plug
 	 * requests which occur asynchronously.  Synchronize using
 	 * host lock.
@@ -5920,6 +6006,10 @@ struct ata_port *ata_port_alloc(struct ata_host *host)
 
 	mutex_init(&ap->scsi_scan_mutex);
 	INIT_DELAYED_WORK(&ap->hotplug_task, ata_scsi_hotplug);
+#ifdef CONFIG_AHCI_RTK
+	INIT_DELAYED_WORK(&ap->lpm_ctl_task, ata_lpm_ctl);
+	ap->lpm_state = 0;
+#endif
 	INIT_WORK(&ap->scsi_rescan_task, ata_scsi_dev_rescan);
 	INIT_LIST_HEAD(&ap->eh_done_q);
 	init_waitqueue_head(&ap->eh_wait_q);
@@ -6050,7 +6140,7 @@ struct ata_host *ata_host_alloc_pinfo(struct device *dev,
 				      const struct ata_port_info * const * ppi,
 				      int n_ports)
 {
-	const struct ata_port_info *pi;
+	const struct ata_port_info *pi = &ata_dummy_port_info;
 	struct ata_host *host;
 	int i, j;
 
@@ -6058,7 +6148,7 @@ struct ata_host *ata_host_alloc_pinfo(struct device *dev,
 	if (!host)
 		return NULL;
 
-	for (i = 0, j = 0, pi = NULL; i < host->n_ports; i++) {
+	for (i = 0, j = 0; i < host->n_ports; i++) {
 		struct ata_port *ap = host->ports[i];
 
 		if (ppi[j])
