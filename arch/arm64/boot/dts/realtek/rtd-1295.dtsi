@@ -208,6 +208,37 @@
 		#size-cells = <1>;
 	};
 
+	rtk_misc_gpio: rtk_misc_gpio@9801b100 {
+		compatible = "realtek,rtk-misc-gpio-irq-mux";
+		gpio-controller;
+		#gpio-cells = <3>; /*must be the same with gpiochip.of_gpio_n_cells*/
+		Realtek,gpio_base = <0>;
+		Realtek,gpio_numbers = <101>;
+		interrupt-parent = <&mux_intc>;
+		#interrupt-cells = <1>;
+		interrupt-controller;
+		interrupts = <0 19>, <0 20>; /*GPIOA_INT   GPIODA_INT*/
+		reg = <0x9801b000 0x100>,
+			<0x9801b100 0x100>; /* MISC_SYS MISC_GPIO*/
+		gpio-ranges = <&pinctrl 0 0 101>;
+		status = "okay";
+	};
+
+	rtk_iso_gpio: rtk_iso_gpio@98007100 {
+		compatible = "realtek,rtk-iso-gpio-irq-mux";
+		gpio-controller;
+		#gpio-cells = <3>;
+		Realtek,gpio_base = <101>;
+		Realtek,gpio_numbers = <35>;
+		interrupt-parent = <&mux_intc>;
+		#interrupt-cells = <1>;
+		interrupt-controller;
+		interrupts = <1 19>, <1 20>; /*GPIOA_INT   GPIODA_INT*/
+		reg = <0x98007000 0x100>,
+			<0x98007100 0x100>; /* ISO_SYS ISO_GPIO*/
+		gpio-ranges = <&pinctrl 0 101 35>;
+		status = "okay";
+	};
 };
 
 &iso {
