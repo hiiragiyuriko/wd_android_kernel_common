@@ -411,8 +411,9 @@ static int ahci_rtk_probe(struct platform_device *pdev)
 	if (!ahci_dev)
 		goto memalloc_fail;
 
-	ahci_dev->chip_id = get_rtd_chip_id();
-	ahci_dev->chip_revision = get_rtd_chip_revision();
+// Always return RTD1295 & A01
+	ahci_dev->chip_id = CHIP_ID_RTD1295;
+	ahci_dev->chip_revision = RTD_CHIP_A01;
 	ahci_dev->dev = dev;
 
 	hpriv = ahci_platform_get_resources(pdev);
@@ -602,9 +603,12 @@ static int ahci_rtk_suspend(struct device *dev)
 	if (ahci_dev->chip_id == CHIP_ID_RTD1619)
 		writel(0x40, mmio + 0xf18);
 
+// remove power state support
+#if 0
 	if (RTK_PM_STATE == PM_SUSPEND_STANDBY) {
 		ahci_platform_disable_clks(hpriv);
 	} else {
+#endif
 #ifdef DISABLE_CLKRST
 		ahci_platform_disable_resources(hpriv);
 		for (i = 0; i < hpriv->nports; i++) {
@@ -624,7 +628,7 @@ static int ahci_rtk_suspend(struct device *dev)
 				break;
 		}
 #endif
-	}
+//	}
 
 	dev_info(dev, "exit %s\n", __func__);
 	return 0;
@@ -666,10 +670,12 @@ static int ahci_rtk_resume(struct device *dev)
 		}
 	}
 
+#if 0
 	if (RTK_PM_STATE == PM_SUSPEND_STANDBY) {
 		ahci_platform_enable_clks(hpriv);
 		ahci_dev->state = RUNNING;
 	} else {
+#endif
 		ahci_platform_disable_resources(hpriv);
 
 		for (j = 0; j < MAC_MAX_RST; j++) {
@@ -698,7 +704,7 @@ static int ahci_rtk_resume(struct device *dev)
 
 		ahci_dev->state = RESUME;
 		rtk_sata_init(hpriv);
-	}
+//	}
 	rc = ahci_platform_resume_host(dev);
 	if (rc)
 		goto disable_resources;
