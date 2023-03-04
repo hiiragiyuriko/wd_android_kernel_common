@@ -9,6 +9,7 @@
 
     aliases {
 		serial0 = &uart0;
+        i2c0 = &i2c_0;
 	};
     
 	cpus {
@@ -167,6 +168,12 @@
 			realtek,function = "uart0";
 		};
 
+        i2c_pins_0: i2c_pins_0 {
+			realtek,pins = "i2c_scl_0",
+				"i2c_sda_0";
+			realtek,function = "i2c0";
+		};
+
         rgmii0_pins: rgmii0_pins {
 			realtek,pins = "rgmii0_txc",
 				"rgmii0_tx_ctl",
@@ -303,6 +310,22 @@
 		ranges = <0x0 0x98000000 0x1000>;
 		#address-cells = <1>;
 		#size-cells = <1>;
+	};
+
+    i2c_0: i2c@0x98007D00 {
+		compatible = "realtek,rtk-i2c";
+		reg = <0x98007D00 0x100>,
+			<0x98007000 0x100>;
+		interrupt-parent = <&mux_intc>;
+		interrupts = <1 8>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&i2c_pins_0>;
+		i2c-num = <0>;
+		status = "okay";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clocks = <&ic RTD1295_ISO_CLK_EN_I2C0>;
+		resets = <&ic RTD1295_ISO_RSTN_I2C_0>;
 	};
 };
 
