@@ -5,7 +5,7 @@ menu "Realtek Soc Drviers"
 
 config RTD129x
 	bool "Realtek RTD129x SoC family specific drivers"
-	depends on ARCH_REALTEK
+	depends on ARCH_RTD129x
 	default y
 	help
 	  Realtek RTD129x SoC family specific support.

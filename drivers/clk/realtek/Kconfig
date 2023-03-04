@@ -18,7 +18,7 @@ config CLK_PLL_PIXEL
 
 config COMMON_CLK_RTD1295
 	bool "RTD1295 Clock Controller"
-	depends on ARCH_REALTEK
+	depends on ARCH_RTD129x
 	select COMMON_CLK_REALTEK
 	default y
 	---help---

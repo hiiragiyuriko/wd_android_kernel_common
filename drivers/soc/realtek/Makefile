@@ -1,1 +1,1 @@
-obj-$(CONFIG_ARCH_REALTEK)	+= common/
+obj-$(CONFIG_RTK_PLATFORM)	+= common/

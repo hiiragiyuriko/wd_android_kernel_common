@@ -1,1 +1,1 @@
-obj-y	+= pinctrl-rtd129x.o
+obj-$(CONFIG_PINCTRL_RTD129x)	+= pinctrl-rtd129x.o
