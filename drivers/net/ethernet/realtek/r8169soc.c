@@ -918,7 +918,7 @@ MODULE_PARM_DESC(debug, "Debug verbosity level (0=none, ..., 16=all)");
 MODULE_LICENSE("GPL");
 MODULE_VERSION(RTL8169_VERSION);
 
-// The chip version in my hand is A01
+// Chip version is A01
 // Always return A01 here for my lazy work
 int get_rtd_chip_revision(void)
 {
