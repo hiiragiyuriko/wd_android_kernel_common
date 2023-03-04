@@ -335,7 +335,11 @@ static int gic_set_affinity(struct irq_data *d, const struct cpumask *mask_val,
 	if (cpu >= NR_GIC_CPU_IF || cpu >= nr_cpu_ids)
 		return -EINVAL;
 
+#ifdef CONFIG_RTK_PLATFORM
+	writeb_relaxed(*cpumask_bits(mask_val), reg);
+#else
 	writeb_relaxed(gic_cpu_map[cpu], reg);
+#endif /* CONFIG_RTK_PLATFORM */
 
 	return IRQ_SET_MASK_OK_DONE;
 }
@@ -475,8 +479,14 @@ static void gic_dist_init(struct gic_chip_data *gic)
 	cpumask = gic_get_cpumask(gic);
 	cpumask |= cpumask << 8;
 	cpumask |= cpumask << 16;
+
+#ifdef CONFIG_RTK_PLATFORM
+	for (i = 32; i < gic_irqs; i += 4)
+		writel_relaxed(0x0F0F0F0F, base + GIC_DIST_TARGET + i * 4 / 4);
+#else
 	for (i = 32; i < gic_irqs; i += 4)
 		writel_relaxed(cpumask, base + GIC_DIST_TARGET + i * 4 / 4);
+#endif /* CONFIG_RTK_PLATFORM */
 
 	gic_dist_config(base, gic_irqs, NULL);
 

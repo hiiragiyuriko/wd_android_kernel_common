@@ -334,6 +334,9 @@ static int __init mux_of_init(struct device_node *np,
 		mux_data++;
 	}
 
+    pr_warn("[%s] RTK irq mux driver init done.\n",
+				DEV_NAME);
+
 	return 0;
 }
 
