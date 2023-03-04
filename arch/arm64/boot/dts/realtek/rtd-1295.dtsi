@@ -1,4 +1,5 @@
 #include <dt-bindings/clock/rtd1295-clk.h>
+#include <dt-bindings/reset/rtd1295-reset.h>
 
 / {
 	compatible = "realtek,rtd1295";
@@ -98,6 +99,34 @@
 		status = "okay";
 	};
 
+    nic: gmac@98016000 {
+		compatible = "Realtek,r8168";
+		reg = <0x98016000 0x1000>,
+			<0x98007000 0x1000>;
+		interrupts = <0 22 4>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&rgmii0_pins>,
+			<&etn_led_pins>;
+		rtl-config = <1>;
+		mac-version = <42>; /* RTL_GIGA_MAC_VER_42 */
+		rtl-features = <2>; /* BIT(2) GMii */
+		output-mode = <0>; /* 0:embedded PHY, 1:RGMII to MAC, 2:RGMII to PHY */
+		rgmii-voltage = <1>; /* 1:1.8V, 2: 2.5V, 3:3.3V */
+		rgmii-tx-delay = <0>; /* 0: 0ns, 1: 2ns */
+		rgmii-rx-delay = <0>; /* 0: 0ns, 1: 2ns */
+		ext-phy-id = <1>; /* 0 ~ 31, only valid when output-mode = 2 */
+		eee = <1>; /* KDP-1095: Enable Energy efficient Ethernet */ 
+		clocks = <&ic RTD1295_ISO_CLK_EN_ETN_250M>,
+			<&ic RTD1295_ISO_CLK_EN_ETN_SYS>;
+		clock-names = "etn_250m",
+			"etn_sys";
+		resets = <&ic RTD1295_ISO_RSTN_GMAC>,
+			<&ic RTD1295_ISO_RSTN_GPHY>;
+		reset-names = "gmac",
+			"gphy";
+		status = "okay";
+	};
+
     mux_intc: intc@9801B000 {
 		compatible = "Realtek,rtk-irq-mux";
 		Realtek,mux-nr = <2>;
@@ -122,7 +151,7 @@
 		pinctrl-0 =
 			<&spi_pins_loc_gpio>;
 		status = "okay";
-        
+
         spi_pins_loc_gpio: spi_pins_loc_gpio {
 			realtek,pins = "gpio_0",
 				"gpio_1",
@@ -136,6 +165,30 @@
 			realtek,pins = "ur0_rx",
 				"ur0_tx";
 			realtek,function = "uart0";
+		};
+
+        rgmii0_pins: rgmii0_pins {
+			realtek,pins = "rgmii0_txc",
+				"rgmii0_tx_ctl",
+				"rgmii0_txd_0",
+				"rgmii0_txd_1",
+				"rgmii0_txd_2",
+				"rgmii0_txd_3",
+				"rgmii0_rxc",
+				"rgmii0_rx_ctl",
+				"rgmii0_rxd_0",
+				"rgmii0_rxd_1",
+				"rgmii0_rxd_2",
+				"rgmii0_rxd_3",
+				"rgmii0_mdio",
+				"rgmii0_mdc";
+			realtek,function = "rgmii";
+		};
+
+        etn_led_pins: etn_led_pins {
+			realtek,pins = "etn_led_link",
+				"etn_led_rxtx";
+			realtek,function = "etn_led";
 		};
 	};
 
