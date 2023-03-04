@@ -24,7 +24,7 @@ CONFIG_CGROUP_PERF=y
 CONFIG_USER_NS=y
 CONFIG_SCHED_AUTOGROUP=y
 CONFIG_BLK_DEV_INITRD=y
-CONFIG_INITRAMFS_SOURCE="/home/hiiragi/Downloads/openwrt_initramfs"
+CONFIG_INITRAMFS_SOURCE="/home/hiiragi/wdrouter/busybox/out/_install"
 # CONFIG_RD_GZIP is not set
 # CONFIG_RD_BZIP2 is not set
 # CONFIG_RD_LZMA is not set
