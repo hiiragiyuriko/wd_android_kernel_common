@@ -878,5 +878,19 @@ config REGULATOR_WM8994
 	  This driver provides support for the voltage regulators on the
 	  WM8994 CODEC.
 
+config REGULATOR_G22XX_CORE
+	tristate
+	help
+	  GMT G2227/G2237 common codes
+
+config REGULATOR_G2227
+	tristate "GMT G2227 Power regulators"
+	depends on MFD_G2227_I2C
+    default y
+	select REGULATOR_G22XX_CORE
+	help
+	  This driver provides support for the voltage regulators on the
+	  GMT G2227 PMIC.
+
 endif
 
